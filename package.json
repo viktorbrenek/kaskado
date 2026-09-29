@@ -1,0 +1,14 @@
+{
+  "name": "kaskado",
+  "private": true,
+  "type": "module",
+  "description": "Kaskáda — hra na učení CSS od úplných základů po moderní layouty",
+  "scripts": {
+    "build": "node build.mjs",
+    "build:claude": "node build.mjs --target=claude",
+    "test": "node build.mjs && node tests/levels.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.55.0"
+  }
+}

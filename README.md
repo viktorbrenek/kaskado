@@ -11,6 +11,7 @@ Píšeš CSS do editoru, vidíš výsledek živě vedle cíle a hra kontroluje, 
 - **74 úrovní CSS v pěti stupních:** Úplné základy (pro úplné nováčky) → Junior → Medior → Senior → Novinky 2025–26
 - **Zakázky:** celé weby a appky podle klientského zadání (styl, paleta, písma), kontrolované podle zadání, ne podle předlohy
 - **Novinky:** oklch, anchor positioning, scroll-driven animace, style queries, `if()`… u každé funkce stav podpory v prohlížečích
+- **Editor pro nováčky:** barevné zvýraznění kódu, našeptávání vlastností, hodnot i tříd z HTML úrovně, automatické závorky, na mobilu lišta se znaky `{ } : ; # .`
 - **Pomůcky:** Kontrola zápisu (česky řekne, co chybí a kde), Tahák, náhled HTML, Prozkoumat prvky, Ukázat mřížku (jako v DevTools)
 - **Galerie:** hotové zakázky sdílíš přes GitHub Discussions
 - Beta kurzy HTML a JavaScript
@@ -41,6 +42,7 @@ npm test
 ```
 src/
   page.html                 HTML kostra a styly hry
+  app/20-editor.js          editor: zvýraznění, našeptávání, párové závorky
   app/10-engines.js         jak se úlohy spouštějí a kontrolují (CSS, HTML, JS), nástroje, diagramy
   app/90-core.js            stav hráče, XP, úspěchy, obrazovky
   app/95-community.js       verze pro GitHub Pages: galerie, záloha, AI prompt

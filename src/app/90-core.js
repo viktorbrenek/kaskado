@@ -199,7 +199,8 @@ function renderPlay(){
       <div class="editor">
         <div class="ed-head"><span class="dots"><i></i><i></i><i></i></span>${E.lang==="css"&&L.html?`<span class="ed-tabs" role="tablist"><button type="button" role="tab" class="ed-tab" id="tabCss" aria-selected="true">${E.file}</button><button type="button" role="tab" class="ed-tab" id="tabHtml" aria-selected="false">index.html <small>jen čtení</small></button></span>`:`<span>${E.file}</span>`}${E.lang==="css"?`<button class="cheat-btn" type="button" id="cheatBtn">Tahák</button>`:""}<span class="timer" id="timer">0:00</span></div>
         <div class="ed-body"><div class="gutter" id="gutter">1</div>
-        <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Editor kódu (${E.lang})"></textarea></div>
+        <div class="ed-wrap"><pre class="hl" aria-hidden="true"></pre><textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Editor kódu (${E.lang})"></textarea></div></div>
+        ${symbarHtml(E.lang)}
         <pre class="htmlview" id="htmlView" hidden></pre>
         <div class="lint" id="lint" hidden></div>
       </div>
@@ -214,11 +215,7 @@ function renderPlay(){
   const ta=$("#code"); ta.value=P.css;
   E.mount(L,$("#engineBox"));
   if(L.project){ const g=$("#engineBox").querySelector('.stage:last-child .lab span'); if(g) g.textContent="Referenční návrh"; const g2=$("#engineBox").querySelector('.stage:last-child .lab span:last-child'); if(g2) g2.textContent="jedna z možných cest"; }
-  ta.addEventListener("input",()=>{P.css=ta.value;saveDraft();schedule()});
-  ta.addEventListener("keydown",e=>{
-    if(e.key==="Tab"&&!e.shiftKey){e.preventDefault();ta.setRangeText("  ",ta.selectionStart,ta.selectionEnd,"end");P.css=ta.value;saveDraft();schedule()}
-    if(e.key==="Enter"&&(e.metaKey||e.ctrlKey)){e.preventDefault();if(!$("#submit").disabled)submit()}
-  });
+  setupEditor(ta,E.lang,L,{onChange(){P.css=ta.value;saveDraft();schedule()},onSubmit(){if(!$("#submit").disabled)submit()}});
   $("#hintBtn").onclick=()=>{if(P.hints<L.hints.length){P.hints++;renderHelp();updatePot()}};
   $("#solBtn").onclick=()=>{P.solution=true;renderHelp();updatePot()};
   $("#resetBtn").onclick=()=>{ta.value=P.css=L.starter;saveDraft();evaluate()};
@@ -277,6 +274,7 @@ function renderHelp(){
 }
 function schedule(){ updateGutter(); clearTimeout(runTimer); const d=P.E.delay; if(!d) return evaluate(); $("#status").textContent="Spouštím…"; runTimer=setTimeout(evaluate,d); }
 function updateGutter(bad){ const n=P.css.split("\n").length, set=new Set((bad||P.lint||[]).map(x=>x.line)); $("#gutter").innerHTML=Array.from({length:n},(_,k)=>set.has(k+1)?`<span class="gerr">${k+1}</span>`:k+1).join("\n"); }
+let lintTimer=null;
 function renderLint(){ const box=$("#lint"); if(!box) return; const l=P.E.lang==="css"?lintCss(P.css,P.L):[]; P.lint=l; updateGutter(l);
   box.hidden=!l.length; box.innerHTML=l.length?`<b>Kontrola zápisu</b><ul>${l.map(x=>`<li><span class="ln">ř. ${x.line}</span> ${esc(x.msg)}</li>`).join("")}</ul>`:""; }
 async function evaluate(){
@@ -284,7 +282,7 @@ async function evaluate(){
   const seq=++runSeq, p=P;
   const res=await p.E.run(p.L,p.css,$("#engineBox"));
   if(seq!==runSeq||p!==P||!$("#checks")) return;
-  renderLint(); drawGrids($("#engineBox"));
+  clearTimeout(lintTimer); lintTimer=setTimeout(renderLint,P.lint&&P.lint.length?250:900); drawGrids($("#engineBox")); edRefresh();
   let lastG=null;
   $("#checks").innerHTML=res.map(r=>{const g=r.group&&r.group!==lastG?`<li class="grp">${esc(r.group)}</li>`:"";lastG=r.group||lastG;return g+`<li class="${r.ok?"ok":""}"><span class="dot"></span>${esc(r.label)}</li>`}).join("");
   P.passed=res.length>0&&res.every(r=>r.ok);

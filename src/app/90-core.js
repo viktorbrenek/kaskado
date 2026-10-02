@@ -123,7 +123,7 @@ function renderMap(){
   const C=CUR(), cs=cstate(C.id);
   const nextIdx=C.levels.findIndex((l,i)=>!cs.done[l.id]&&isUnlocked(C,i));
   const total=C.levels.length, dn=C.levels.filter(l=>cs.done[l.id]).length;
-  let h=`<div class="view-head"><div><h2>${C.name}</h2><p>${C.tiers?`Úplné základy pro nováčky, pak Junior → Medior → Senior a Novinky. Další stupeň se otevře po splnění ${TIER_GATE*100} % předchozího, moduly uvnitř stupně si projdeš v libovolném pořadí.`:"Úrovně se odemykají postupně."} Bez nápovědy 3 hvězdy a bonus ${RULES.cleanBonus} XP.</p></div>
+  let h=`<div class="view-head"><div><h2>${C.name}</h2><p>${C.tiers?`${C.tiers.map(t=>t.name).join(" → ")}. Další stupeň se otevře po splnění ${TIER_GATE*100} % předchozího, moduly uvnitř stupně si projdeš v libovolném pořadí.`:"Úrovně se odemykají postupně."} Bez nápovědy 3 hvězdy a bonus ${RULES.cleanBonus} XP.</p></div>
   ${nextIdx>=0?`<button class="btn primary" data-play="${C.levels[nextIdx].id}">Pokračovat: ${esc(C.levels[nextIdx].title)}</button>`:dn===total?`<span class="chip done">Kurz dokončen</span>`:""}</div>`;
   const groups=C.tiers?C.tiers.map(t=>({t,mods:C.modules.filter(m=>m.tier===t.id)})):[{t:null,mods:C.modules}];
   for(const {t,mods} of groups){
@@ -284,7 +284,7 @@ function renderHelp(){
 function schedule(){ updateGutter(); clearTimeout(runTimer); const d=P.E.delay; if(!d) return evaluate(); $("#status").textContent="Spouštím…"; runTimer=setTimeout(evaluate,d); }
 function updateGutter(bad){ const n=P.css.split("\n").length, set=new Set((bad||P.lint||[]).map(x=>x.line)); $("#gutter").innerHTML=Array.from({length:n},(_,k)=>set.has(k+1)?`<span class="gerr">${k+1}</span>`:k+1).join("\n"); }
 let lintTimer=null;
-function renderLint(){ const box=$("#lint"); if(!box) return; const l=P.E.lang==="css"?lintCss(P.css,P.L):[]; P.lint=l; updateGutter(l);
+function renderLint(){ const box=$("#lint"); if(!box) return; const l=P.E.lang==="css"?lintCss(P.css,P.L):P.E.lang==="html"?lintHtml(P.css):[]; P.lint=l; updateGutter(l);
   box.hidden=!l.length; box.innerHTML=l.length?`<b>Kontrola zápisu</b><ul>${l.map(x=>`<li><span class="ln">ř. ${x.line}</span> ${esc(x.msg)}</li>`).join("")}</ul>`:""; }
 async function evaluate(){
   updateGutter();
@@ -366,6 +366,29 @@ function validSelector(sel){ try{ _probe.replaceSync(sel+"{}"); return _probe.cs
 const SIZE_PROPS=/^(font-size|width|height|max-width|min-width|max-height|min-height|margin|padding|gap|top|right|bottom|left|border-radius|letter-spacing|border-width|inset)/;
 
 /* Vrací [{line, msg}] — přátelské české hlášky k typickým chybám zápisu */
+/* jednoduchá kontrola HTML: neuzavřené / přebývající značky, img bez alt, uvozovky */
+const VOID_TAGS=new Set("area base br col embed hr img input link meta source track wbr".split(" "));
+const AUTOCLOSE=new Set("li p option td th tr thead tbody dt dd".split(" "));
+function lintHtml(src){
+  const out=[], stack=[], lineAt=i=>src.slice(0,i).split("\n").length;
+  const clean=src.replace(/<!--[\s\S]*?-->/g,m=>m.replace(/[^\n]/g," "));
+  const bad=clean.split("\n").findIndex(l=>(l.match(/"/g)||[]).length%2);
+  if(bad>=0) return [{line:bad+1,msg:`Na řádku chybí uvozovka " — hodnota atributu musí být uzavřená z obou stran.`}];
+  const re=/<(\/?)([a-zA-Z][\w-]*)((?:[^>"']|"[^"]*"|'[^']*')*)(>|$)/g; let m;
+  while((m=re.exec(clean))){ const [all,close,tagRaw,attrs,end]=m, tag=tagRaw.toLowerCase(), line=lineAt(m.index);
+    if(!end){ out.push({line,msg:`Značka <${tag}> není zavřená znakem „>“.`}); break; }
+    if((attrs.match(/"/g)||[]).length%2||(attrs.match(/(^|[\s=])'/g)||[]).length%2) out.push({line,msg:`V <${tag}> chybí zavírací uvozovka u atributu.`});
+    if(/=\s*$/.test(attrs)) out.push({line,msg:`V <${tag}> chybí hodnota atributu za „=“.`});
+    if(close){ if(VOID_TAGS.has(tag)) continue;
+      const k=stack.map(x=>x.tag).lastIndexOf(tag);
+      if(k<0){ out.push({line,msg:`Zavírací </${tag}> nemá otevírací <${tag}>.`}); continue; }
+      for(let j=stack.length-1;j>k;j--){ const o=stack[j]; if(!AUTOCLOSE.has(o.tag)) out.push({line:o.line,msg:`<${o.tag}> není zavřené — chybí </${o.tag}> před </${tag}>.`}); }
+      stack.length=k; continue; }
+    if(tag==="img"&&!/\balt\s*=|\balt(\s|$|\/)/.test(attrs)) out.push({line,msg:`Obrázek nemá atribut alt. Popiš obsah, nebo dej alt="" u dekorace.`});
+    if(!VOID_TAGS.has(tag)&&!/\/\s*$/.test(attrs)) stack.push({tag,line}); }
+  for(const o of stack) if(!AUTOCLOSE.has(o.tag)) out.push({line:o.line,msg:`<${o.tag}> není zavřené — na konec chybí </${o.tag}>.`});
+  return out.slice(0,6);
+}
 function lintCss(src,L){
   const out=[], push=(line,msg)=>{ if(!out.some(o=>o.line===line&&o.msg===msg)) out.push({line,msg}); };
   let code=src.replace(/\/\*[\s\S]*?\*\//g,m=>m.replace(/[^\n]/g," "));

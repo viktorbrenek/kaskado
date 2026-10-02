@@ -18,7 +18,7 @@ for(const width of [1280,390]){
         if(P.passed) out.push(`${C.id}/${L.id}: výchozí kód prošel`);
         P.css=L.solution; document.querySelector("#code").value=L.solution; await evaluate();
         if(!P.passed) out.push(`${C.id}/${L.id}: řešení neprošlo — `+[...document.querySelectorAll("#checks li:not(.ok):not(.grp)")].map(e=>e.textContent).join(" | "));
-        if(C.engine==="css"){ const w=lintCss(L.solution,L); if(w.length) out.push(`${C.id}/${L.id}: kontrola zápisu hlásí ${JSON.stringify(w)}`); }
+        if(C.engine==="css"||C.engine==="html"){ const w=C.engine==="css"?lintCss(L.solution,L):lintHtml(L.solution); if(w.length) out.push(`${C.id}/${L.id}: kontrola zápisu hlásí ${JSON.stringify(w)}`); }
         if(P.passed){ submit(); document.querySelector(".overlay")?.remove(); }
       } }
     return {out,levels:COURSES.reduce((a,c)=>a+c.levels.length,0)};

@@ -182,7 +182,11 @@ function hideTip(){ if(tipEl){tipEl.style.display="none";boxEl.style.display="no
 const STAGE_BASE=`:host{all:initial;display:block;font-family:system-ui,sans-serif;color:#14203a;font-size:15px;line-height:1.45}
 .scene{padding:18px}h1{font-size:26px;margin:0 0 8px}p{margin:0 0 6px}a{color:#2f5bd3}ul,ol{margin:0;padding-left:22px}`;
 function paintShadow(host,{fixed="",css="",html="",w=0}){
-  const root=host.shadowRoot||host.attachShadow({mode:"open"});
+  let root=host.shadowRoot;
+  if(!root){ root=host.attachShadow({mode:"open"});
+    // náhled je jen ukázka: formuláře se neodesílají a odkazy nikam nevedou
+    root.addEventListener("submit",e=>{ if(e.target.getAttribute("method")!=="dialog") e.preventDefault(); },true);
+    root.addEventListener("click",e=>{ const a=e.target.closest&&e.target.closest("a[href]"); if(a) e.preventDefault(); },true); }
   root.innerHTML=`<style>${STAGE_BASE}</style><style data-fixed>${fixed}</style><style data-user>${css}</style><div class="scene"${w?` style="width:${w}px"`:""}>${html}</div>`;
   return root;
 }

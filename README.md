@@ -15,6 +15,8 @@ Píšeš CSS do editoru, vidíš výsledek živě vedle cíle a hra kontroluje, 
 - **Pomůcky:** Kontrola zápisu (česky řekne, co chybí a kde), Tahák, náhled HTML, Prozkoumat prvky, Ukázat mřížku (jako v DevTools), Prolnout s cílem (posuvník), Co se liší? (seznam rozdílů oproti cíli)
 - **Výklad s nákresy:** flexbox (osy, justify-content, align-items), pozicování (tok, relative, absolute, z-index, sticky) a grid
 - **Trénink:** výzva dne z hotových úrovní (bonus za čistý průchod), rychlokvíz „předpověz výsledek“ (16 otázek na čtení CSS) a hřiště s přepínači pro flexbox a grid i volné plátno
+- **Sdílení:** odkaz přímo na úroveň (`#css.flex-2`), certifikát jako obrázek a přidání na LinkedIn, tlačítko Nahlásit problém u každé úrovně (předvyplněný issue na GitHubu)
+- **Appka a offline:** web jde nainstalovat (Přidat na plochu / Instalovat) a po první návštěvě funguje i bez internetu
 - **Galerie:** hotové zakázky sdílíš přes GitHub Discussions
 - Beta kurzy HTML a JavaScript
 

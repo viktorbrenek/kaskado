@@ -64,4 +64,5 @@ function setupBackup(){
   let armed=false; $("#bkReset").onclick=e=>{ if(!armed){ armed=true; e.target.textContent="Opravdu smazat? Klikni znovu"; setTimeout(()=>{armed=false; if(e.target.isConnected) e.target.textContent="Smazat postup"},4000); return; }
     S=blank(); DRAFTS={}; try{localStorage.removeItem("kaskada.drafts")}catch(x){} save(); show("profile"); };
 }
-if(MODE==="static"){ const b=document.querySelector('[data-view="board"]'); if(b) b.hidden=true; }
+if(MODE==="static"){ const b=document.querySelector('[data-view="board"]'); if(b) b.hidden=true;
+  if("serviceWorker" in navigator&&location.protocol==="https:") window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{})); }

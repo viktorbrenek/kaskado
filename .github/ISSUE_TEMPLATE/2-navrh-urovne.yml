@@ -1,0 +1,28 @@
+name: Návrh úrovně
+description: Nápad na novou úroveň, modul nebo zakázku.
+title: "Návrh: "
+labels: ["návrh úrovně"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Co se má hráč naučit
+      description: Jedna konkrétní věc, třeba „rozdíl mezi em a rem“.
+    validations:
+      required: true
+  - type: textarea
+    id: task
+    attributes:
+      label: Úkol
+      description: Co má hráč v úrovni udělat a jak poznáme, že to má správně?
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Stupeň
+      options: ["Úplné základy", "Junior", "Medior", "Senior", "Novinky", "Zakázka", "Nevím"]
+  - type: checkboxes
+    id: pr
+    attributes:
+      label: Chceš ji napsat sám/sama?
+      options:
+        - label: Ano, pošlu pull request (návod v CONTRIBUTING.md)

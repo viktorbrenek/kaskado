@@ -61,6 +61,10 @@ Kontrola dostane objekt `c` nad náhledem hráče:
 - Label piš z pohledu hráče: „Nadpis je vycentrovaný“, ne „text-align === center“.
 - U zakázek hlídej zadání klienta, ne pixelovou shodu s referenčním řešením.
 
+## Hlášení chyb a nápady
+
+Ve hře je u každé úrovně tlačítko **Nahlásit problém** — otevře issue s vyplněnou úrovní, kódem hráče a nesplněnými kontrolami. Ručně jdou použít šablony *Problém s úrovní*, *Návrh úrovně* a *Chyba ve hře*.
+
 ## Texty
 
 Píšeme česky, tykáme, krátce a konkrétně. Bez „jednoduše“ a „prostě“ — nováčkovi to nic neříká.

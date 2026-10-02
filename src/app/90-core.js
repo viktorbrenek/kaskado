@@ -195,6 +195,8 @@ function renderPlay(){
         <button class="btn" id="hintBtn"></button>
         <button class="btn ghost" id="solBtn">${L.project?"Ukázat referenční návrh":"Ukázat řešení"} <small>(−90 % XP)</small></button>
         <button class="btn ghost" id="resetBtn">Vrátit kód</button>
+        <a class="btn ghost" id="reportBtn" href="${REPO_URL}/issues/new" target="_blank" rel="noopener">Nahlásit problém</a>
+        ${MODE==="static"?`<button class="btn ghost" id="linkBtn">Zkopírovat odkaz</button>`:""}
       </div>
       <div id="sol"></div>
       ${L.project?`<div class="review" id="review" hidden><div class="review-head"><b>Posudek art directora</b><small>AI zhodnotí tvůj návrh vůči zadání. Volání jde z tvého účtu Claude.</small></div><button class="btn" id="reviewBtn">Požádat o posudek</button><div id="reviewOut"></div></div>`:""}
@@ -227,6 +229,8 @@ function renderPlay(){
   $("#submit").onclick=submit;
   if(L.project) setupReview();
   if($("#cheatBtn")) $("#cheatBtn").onclick=openCheat;
+  $("#reportBtn").addEventListener("click",()=>{ $("#reportBtn").href=reportUrl(L,C,P.css); });
+  if($("#linkBtn")) $("#linkBtn").onclick=async()=>{ const u=levelLink(L,C); if(await copyText(u)) toast(`<div><b>Odkaz zkopírován</b><br>${esc(u)}</div>`); else copyFallback(u,"Odkaz na úroveň"); };
   if($("#tabHtml")){ $("#htmlView").innerHTML=fmtHtml(L.html); const sw=h=>{ $("#tabHtml").setAttribute("aria-selected",h); $("#tabCss").setAttribute("aria-selected",!h); $("#htmlView").hidden=!h; document.querySelector(".ed-body").hidden=h; if(!h) $("#code").focus(); };
     $("#tabHtml").onclick=()=>sw(true); $("#tabCss").onclick=()=>sw(false); }
   if(E.lang==="css") setupStageTools($("#engineBox"));
@@ -530,7 +534,7 @@ function renderProfile(){
     for(const a of certs){const got=S.ach[a.id];
       h+=`<div class="cert${got?"":" locked"}"><span class="seal" style="background:${a.c.color}">${a.glyph}</span><span class="k">Kaskáda · certifikát</span><b>${a.name}</b>
       <span class="who">${got?`Uděleno: <span class="cert-name"></span>`:"Zatím nezískáno"}</span>
-      <small>${got?new Date(got).toLocaleDateString("cs-CZ")+" · "+tierLevels(a.c,a.tier.id).length+" úrovní":`Splň všech ${tierLevels(a.c,a.tier.id).length} úrovní stupně ${a.tier.name}.`}</small></div>`}
+      <small>${got?new Date(got).toLocaleDateString("cs-CZ")+" · "+tierLevels(a.c,a.tier.id).length+" úrovní":`Splň všech ${tierLevels(a.c,a.tier.id).length} úrovní stupně ${a.tier.name}.`}</small>${got?`<button class="btn cert-share" data-cert="${a.id}">Obrázek a LinkedIn</button>`:""}</div>`}
     h+=`</div>`; }
   const groups={}; allAch().filter(a=>!a.cert).forEach(a=>(groups[a.group]=groups[a.group]||[]).push(a));
   for(const [g,list] of Object.entries(groups)){
@@ -544,6 +548,7 @@ function renderProfile(){
   if(MODE==="static") setupBackup();
   $("#v-profile h2").textContent=name;
   document.querySelectorAll("#v-profile .cert-name").forEach(e=>e.textContent=name);
+  document.querySelectorAll("#v-profile [data-cert]").forEach(b=>b.onclick=()=>openCertificate(b.dataset.cert));
 }
 
 /* ---------- ŽEBŘÍČEK ---------- */
@@ -580,12 +585,13 @@ let VIEW="courses";
 function show(v){
   VIEW=v;
   for(const x of ["courses","map","play","training","profile","board","gallery"]) $("#v-"+x).hidden=x!==v;
+  setHash(hashForView(v));
   document.querySelector("main").classList.toggle("wide-play",v==="play"); hideTip();
   document.querySelectorAll("nav.tabs button").forEach(b=>b.dataset.view===v||(v==="play"&&b.dataset.view==="map")?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current"));
   if(v==="courses")renderCourses(); if(v==="map")renderMap(); if(v==="profile")renderProfile(); if(v==="board")renderBoard(); if(v==="gallery")renderGallery(); if(v==="training")renderTraining();
   renderHud(); window.scrollTo({top:0});
 }
-function openCourse(id){ UI.course=id; saveUI(); try{history.replaceState(null,"","#"+id)}catch(e){} show("map"); }
+function openCourse(id){ UI.course=id; saveUI(); show("map"); }
 document.addEventListener("click",e=>{
   const bf=e.target.closest("[data-bf]"); if(bf){BOARD_F=bf.dataset.bf;renderBoard();return}
   const zb=e.target.closest(".zoom"); if(zb&&P){ const ov=document.createElement("div"); ov.className="overlay"; ov.innerHTML=`<div class="bigview" role="dialog" aria-label="Náhled"><div class="bv-bar"><b>${esc(P.L.title)} · tvůj návrh</b><button class="btn" data-close>Zavřít</button></div><div class="bv-host"></div></div>`; document.body.append(ov); paintShadow(ov.querySelector(".bv-host"),{fixed:P.L.fixed,css:P.css,html:P.L.html}); ov.addEventListener("click",ev=>{if(ev.target===ov||ev.target.closest("[data-close]"))ov.remove()}); ov.querySelector("[data-close]").focus(); return }
@@ -610,9 +616,7 @@ function confetti(){
 function retroAch(){ let n=0; for(const a of allAch()){ if(S.ach[a.id]) continue; let ok=false; try{ok=a.test(S,cstate(a.cid||"css"))}catch(e){} if(ok){S.ach[a.id]=Date.now();n++} } if(n) save(); }
 function boot(){
   retroAch(); setTimeout(maybeWelcome,300);
-  const h=(location.hash||"").slice(1);
-  if(course(h)&&course(h).status!=="soon"){UI.course=h;saveUI();show("map")}
-  else show(totalDone(S)?"map":"courses");
+  if(!routeFromHash()) show(totalDone(S)?"map":"courses");
   if(!window.claude?.use) return;
   (async()=>{
     user=await claude.use("user");

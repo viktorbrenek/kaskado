@@ -1,0 +1,33 @@
+name: Problém s úrovní
+description: Úroveň nejde splnit, kontrola je špatně, nebo výklad nedává smysl.
+title: "[id-úrovně] "
+labels: ["úroveň"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Nejrychlejší cesta: ve hře klikni u úrovně na **Nahlásit problém** — vyplní se úroveň i tvůj kód samy.
+  - type: input
+    id: level
+    attributes:
+      label: Úroveň
+      description: Název nebo id (je v odkazu, třeba css.flex-2)
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: Co se stalo
+      description: Co jsi čekal(a) a co se stalo místo toho?
+    validations:
+      required: true
+  - type: textarea
+    id: code
+    attributes:
+      label: Tvůj kód
+      render: css
+  - type: input
+    id: browser
+    attributes:
+      label: Prohlížeč a zařízení
+      placeholder: Chrome 141 na macOS, Safari na iPhonu…

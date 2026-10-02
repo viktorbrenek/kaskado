@@ -14,6 +14,7 @@ Píšeš CSS do editoru, vidíš výsledek živě vedle cíle a hra kontroluje, 
 - **Editor pro nováčky:** barevné zvýraznění kódu, našeptávání vlastností, hodnot i tříd z HTML úrovně, automatické závorky, na mobilu lišta se znaky `{ } : ; # .`
 - **Pomůcky:** Kontrola zápisu (česky řekne, co chybí a kde), Tahák, náhled HTML, Prozkoumat prvky, Ukázat mřížku (jako v DevTools), Prolnout s cílem (posuvník), Co se liší? (seznam rozdílů oproti cíli)
 - **Výklad s nákresy:** flexbox (osy, justify-content, align-items), pozicování (tok, relative, absolute, z-index, sticky) a grid
+- **Trénink:** výzva dne z hotových úrovní (bonus za čistý průchod), rychlokvíz „předpověz výsledek“ (16 otázek na čtení CSS) a hřiště s přepínači pro flexbox a grid i volné plátno
 - **Galerie:** hotové zakázky sdílíš přes GitHub Discussions
 - Beta kurzy HTML a JavaScript
 

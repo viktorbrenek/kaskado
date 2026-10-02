@@ -12,12 +12,16 @@ const GLOBAL_ACH = [
   {id:"poly2",   name:"Dvojjazyčný",    desc:"Vyřeš úroveň ve 2 různých kurzech.",glyph:"2×", color:"var(--c-html)",    test:s=>coursesTouched(s)>=2},
   {id:"reviewed",name:"Na koberečku", desc:"Nech si posoudit zakázku od AI art directora.", glyph:"AD", color:"var(--m-border)", test:s=>!!s.ach.reviewed},
   {id:"exhibit", name:"Vernisáž",      desc:"Vystav hotovou zakázku v galerii.", glyph:"art", color:"var(--m-margin)", test:s=>!!s.ach.exhibit},
+  {id:"challenge5",name:"Pravidelný trénink",desc:"Splň 5 výzev dne.", glyph:"5×", color:"var(--m-content)", test:s=>(s.challenges||0)>=5},
+  {id:"quizperfect",name:"Čtenář kódu",desc:"Rychlokvíz bez jediné chyby.", glyph:"8/8", color:"var(--m-padding)", test:s=>(s.quizPerfect||0)>=1},
+  {id:"quiz50",name:"Kvízmistr",desc:"50 správných odpovědí v rychlokvízech.", glyph:"50", color:"var(--m-border)", test:s=>(s.quizCorrect||0)>=50},
+  {id:"playground",name:"Hravá duše",desc:"Vyzkoušej hřiště.", glyph:"{}", color:"var(--m-margin)", test:s=>!!s.ach.playground},
   {id:"poly3",   name:"Polyglot",       desc:"Vyřeš úroveň ve 3 různých kurzech.",glyph:"3×", color:"var(--c-js)",      test:s=>coursesTouched(s)>=3},
 ];
 const certAch=c=>(c.tiers||[]).filter(t=>!t.optional).map(t=>({id:`cert-${c.id}-${t.id}`, cert:true, tier:t, name:`${t.name} ${c.name}`, desc:`Certifikát: všechny úrovně stupně ${t.name}.`, glyph:t.glyph, color:c.color, test:(s,cs)=>tierLevels(c,t.id).every(l=>cs.done[l.id])}));
 const allAch=()=>[...GLOBAL_ACH.map(a=>({...a,group:"Obecné"})),...COURSES.flatMap(c=>[...certAch(c),...c.achievements].map(a=>({...a,group:c.name,cid:c.id})))];
 const TITLES = ["Nováček","Učeň","Stylista","Kodér","Kaskádér","Layouter","Frontendista","Vývojář","Specialista","Architekt","Expert","Guru","Senior kodér","Mistr kaskády"];
-const RULES = { hintPenalty:.25, solutionShare:.1, cleanBonus:50, speedBonus:25, speedLimit:60, daily:st=>20+10*Math.min(st,7) };
+const RULES = { hintPenalty:.25, solutionShare:.1, cleanBonus:50, speedBonus:25, speedLimit:60, challenge:st=>40+10*Math.min(st,5), daily:st=>20+10*Math.min(st,7) };
 const levelInfo = xp => { const lvl=Math.floor(Math.sqrt(xp/100))+1; const from=100*(lvl-1)**2, to=100*lvl**2;
   return {lvl, title:TITLES[Math.min(lvl-1,TITLES.length-1)], from, to, pct:(xp-from)/(to-from)}; };
 const maxXp=l=>l.xp+Math.round((RULES.cleanBonus+RULES.speedBonus)*Math.min(1,l.xp/100));
@@ -151,11 +155,11 @@ function renderMap(){
 
 /* ---------- HRA ---------- */
 let P=null, runSeq=0, runTimer=null;
-function startLevel(id,keepCode){
+function startLevel(id,keepCode,opts){
   const C=CUR(), i=C.levels.findIndex(l=>l.id===id); if(i<0||!isUnlocked(C,i)) return;
   const L=C.levels[i], E=ENGINES[C.engine];
   const dr=DRAFTS[C.id+"/"+id];
-  P={C,E,L,i,hints:0,solution:false,start:Date.now(),css:keepCode&&P&&P.L.id===id?P.css:(L.project&&dr!=null?dr:L.starter),passed:false};
+  P={C,E,L,i,hints:0,solution:false,start:Date.now(),css:keepCode&&P&&P.L.id===id?P.css:(L.project&&dr!=null&&!opts?.daily?dr:L.starter),passed:false,daily:!!opts?.daily};
   show("play"); renderPlay();
 }
 const SUP={baseline:{t:"Baseline",c:"live",d:"Funguje ve všech hlavních prohlížečích."},interop:{t:"Interop 2026",c:"beta",d:"Prohlížeče ji v roce 2026 společně dotahují — v Chromu a Safari už jede."},chromium:{t:"Chromium",c:"warn",d:"Zatím hlavně Chrome a Edge. Ostatní prohlížeče na cestě."}};
@@ -182,6 +186,7 @@ function renderPlay(){
     <div class="panel lesson">
       <div class="crumbs"><button data-view="map">← Mapa</button><span>·</span><span class="crs-tag" style="background:${C.color}">${C.name}</span><span>${m.name} · úroveň ${i+1} z ${C.levels.length}</span>${L.support?supBadge(L):""}</div>
       <h2>${esc(L.title)}</h2>
+      ${P.daily?`<div class="daily-banner"><b>Výzva dne</b> Vyřeš úroveň znovu od nuly a bez nápovědy — dostaneš +${RULES.challenge(S.streak||0)} XP.</div>`:""}
       ${L.support&&!sup?`<div class="hint"><b>Tvůj prohlížeč tuhle funkci zatím nezná.</b> Výsledek se nevykreslí, proto zkontrolujeme jen zápis. Naplno si ji vyzkoušíš v aktuálním Chromu.</div>`:""}
       ${L.project?briefHtml(L):L.slides?slidesHtml(L):`<div class="theory">${L.theory}</div>${L.id==="sel-1"&&!cstate("css").done["s-5"]?`<p class="note">Nový v CSS? <button class="linkbtn" data-play="s-1">Projdi nejdřív Úplné základy</button> — deset minut, vysvětlí selektor, vlastnost i závorky.</p>`:""}<div class="task"><h4>Úkol</h4>${L.task}</div>`}
       <ul class="checks" id="checks"></ul>
@@ -317,6 +322,7 @@ function submit(){
     S.streak=(S.lastDay===yesterday())?S.streak+1:1; S.bestStreak=Math.max(S.bestStreak,S.streak); S.lastDay=today(); S.days=(S.days||0)+1;
     const b=RULES.daily(S.streak); total+=b; out.push([`Denní bonus (série ${S.streak})`,b]);
   }
+  if(P.daily&&!dailyDone()){ if(r.clean){ const b=RULES.challenge(S.streak); total+=b; out.push(["Výzva dne",b]); S.challenge=today(); S.challenges=(S.challenges||0)+1; } else out.push(["Výzva dne platí jen bez nápovědy",0]); }
   S.xp+=total;
   const fresh=allAch().filter(a=>!S.ach[a.id]&&(()=>{try{return a.test(S,cstate(a.cid||C.id))}catch(e){return false}})());
   fresh.forEach(a=>S.ach[a.id]=Date.now());
@@ -573,10 +579,10 @@ async function renderBoard(){
 let VIEW="courses";
 function show(v){
   VIEW=v;
-  for(const x of ["courses","map","play","profile","board","gallery"]) $("#v-"+x).hidden=x!==v;
+  for(const x of ["courses","map","play","training","profile","board","gallery"]) $("#v-"+x).hidden=x!==v;
   document.querySelector("main").classList.toggle("wide-play",v==="play"); hideTip();
   document.querySelectorAll("nav.tabs button").forEach(b=>b.dataset.view===v||(v==="play"&&b.dataset.view==="map")?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current"));
-  if(v==="courses")renderCourses(); if(v==="map")renderMap(); if(v==="profile")renderProfile(); if(v==="board")renderBoard(); if(v==="gallery")renderGallery();
+  if(v==="courses")renderCourses(); if(v==="map")renderMap(); if(v==="profile")renderProfile(); if(v==="board")renderBoard(); if(v==="gallery")renderGallery(); if(v==="training")renderTraining();
   renderHud(); window.scrollTo({top:0});
 }
 function openCourse(id){ UI.course=id; saveUI(); try{history.replaceState(null,"","#"+id)}catch(e){} show("map"); }

@@ -282,7 +282,7 @@ async function evaluate(){
   const seq=++runSeq, p=P;
   const res=await p.E.run(p.L,p.css,$("#engineBox"));
   if(seq!==runSeq||p!==P||!$("#checks")) return;
-  clearTimeout(lintTimer); lintTimer=setTimeout(renderLint,P.lint&&P.lint.length?250:900); drawGrids($("#engineBox")); edRefresh();
+  clearTimeout(lintTimer); lintTimer=setTimeout(renderLint,P.lint&&P.lint.length?250:900); drawGrids($("#engineBox")); edRefresh(); if(P.E.lang==="css"&&!P.L.project){ renderDiff($("#engineBox")); renderCompare($("#engineBox")); }
   let lastG=null;
   $("#checks").innerHTML=res.map(r=>{const g=r.group&&r.group!==lastG?`<li class="grp">${esc(r.group)}</li>`:"";lastG=r.group||lastG;return g+`<li class="${r.ok?"ok":""}"><span class="dot"></span>${esc(r.label)}</li>`}).join("");
   P.passed=res.length>0&&res.every(r=>r.ok);

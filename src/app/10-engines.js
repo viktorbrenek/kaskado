@@ -25,6 +25,27 @@ function gd({cols,items=[],nums=false,gap=6,areas="",cap=""}){
   return `<figure class="gd">${numRow}<div class="gd-grid" style="grid-template-columns:${cols};gap:${gap}px;${areas?`grid-template-areas:${areas.replace(/"/g,"'")};`:""}">${cells}</div>${cap?`<figcaption>${cap}</figcaption>`:""}</figure>`;
 }
 
+/* ---------- diagramy flexboxu: fx({jc, ai, dir, n, hs, cap}) — vykresluje skutečný flexbox ---------- */
+function fx({jc="flex-start",ai="stretch",dir="row",n=3,hs=[],h=64,gap=6,cap,code,wrap=false,labels}={}){
+  const items=Array.from({length:n},(_,k)=>`<div class="fx-i" style="${hs[k]?`height:${hs[k]}px;`:""}${dir.startsWith("column")?"width:auto;":""}">${labels?labels[k]:k+1}</div>`).join("");
+  return `<figure class="fx"><div class="fx-box" style="display:flex;flex-direction:${dir};justify-content:${jc};align-items:${ai};gap:${gap}px;${wrap?"flex-wrap:wrap;":""}height:${h}px">${items}</div><figcaption>${code?`<code>${code}</code>`:""}${cap?` ${cap}`:""}</figcaption></figure>`;
+}
+const fxGal=(arr)=>`<div class="fx-gal">${arr.join("")}</div>`;
+function axesDiagram(){
+  return `<div class="axes"><figure class="fx"><div class="fx-box axes-box" style="display:flex;gap:6px;height:90px;align-items:flex-start"><div class="fx-i">1</div><div class="fx-i">2</div><div class="fx-i">3</div><span class="ax ax-main">hlavní osa →</span><span class="ax ax-cross">příčná osa ↓</span></div><figcaption><code>flex-direction: row</code> (výchozí)</figcaption></figure>
+  <figure class="fx"><div class="fx-box axes-box col" style="display:flex;flex-direction:column;gap:6px;height:150px;align-items:flex-start"><div class="fx-i">1</div><div class="fx-i">2</div><div class="fx-i">3</div><span class="ax ax-main v">hlavní osa ↓</span><span class="ax ax-cross v">příčná osa →</span></div><figcaption><code>flex-direction: column</code> osy otočí</figcaption></figure></div>`;
+}
+/* ---------- diagramy pozicování ---------- */
+function posDiagram(kind){
+  if(kind==="flow") return `<figure class="pd"><div class="pd-box"><div class="pd-i">1</div><div class="pd-i">2</div><div class="pd-i">3</div></div><figcaption><b>static</b> (výchozí): prvky jdou v normálním toku pod sebe.</figcaption></figure>`;
+  if(kind==="relative") return `<figure class="pd"><div class="pd-box"><div class="pd-i">1</div><div class="pd-i ghost">místo zůstává</div><div class="pd-i hl" style="position:absolute;left:46px;top:58px">2 · relative, top: 10px; left: 30px</div><div class="pd-i">3</div></div><figcaption><b>relative</b>: posune se od svého místa, ale jeho místo v toku zůstane prázdné. Ostatní se nehnou.</figcaption></figure>`;
+  if(kind==="absolute") return `<figure class="pd"><div class="pd-box rel"><span class="pd-tag">rodič · position: relative</span><div class="pd-i">1</div><div class="pd-i">3 — zabral místo dvojky</div><div class="pd-i hl" style="position:absolute;top:8px;right:8px">2 · absolute, top: 8px; right: 8px</div></div><figcaption><b>absolute</b>: vypadne z toku (ostatní se k sobě přisunou) a měří se od nejbližšího <i>pozicovaného</i> předka — proto rodiči dáváme <code>relative</code>.</figcaption></figure>`;
+  if(kind==="z") return `<figure class="pd"><div class="pd-box zz"><div class="pd-c" style="left:20px;top:16px;z-index:1;background:#8cb6c0">z-index: 1</div><div class="pd-c" style="left:70px;top:40px;z-index:3;background:#f3b184">z-index: 3</div><div class="pd-c" style="left:120px;top:64px;z-index:2;background:#b9c77a">z-index: 2</div></div><figcaption>Vyšší <code>z-index</code> je blíž k tobě — ale jen u prvků s <code>position</code> jiným než <code>static</code> (a u dětí flexu či gridu).</figcaption></figure>`;
+  if(kind==="sticky") return `<figure class="pd"><div class="pd-scroll"><div class="pd-sticky">Přilepená hlavička · sticky; top: 0</div>${Array.from({length:8},(_,i)=>`<p>Řádek ${i+1}</p>`).join("")}</div><figcaption>Zkus v rámečku rolovat. Dokud hlavička nedojede k hornímu okraji, chová se normálně, pak se přilepí.</figcaption></figure>`;
+  if(kind==="inset") return `<div class="fx-gal"><figure class="pd"><div class="pd-box rel tall"><div class="pd-i hl" style="position:absolute;inset:0;display:grid;place-items:center">inset: 0</div></div><figcaption>Vyplní celého rodiče.</figcaption></figure><figure class="pd"><div class="pd-box rel tall"><div class="pd-i hl" style="position:absolute;inset:12px;display:grid;place-items:center">inset: 12px</div></div><figcaption>Nechá okraj 12px ze všech stran.</figcaption></figure></div>`;
+  return "";
+}
+
 /* ---------- HTML úrovně jako čitelný kód (jen pro čtení) ---------- */
 const INLINE=new Set(["a","span","b","strong","i","em","code","small","cite","label","button","input","img","br","abbr"]);
 function fmtHtml(html){
@@ -43,6 +64,55 @@ function fmtHtml(html){
     if(onlyInline(c)&&c.textContent.length<90){ out.push(pad+inline(c)); continue; }
     out.push(pad+open(c)); walk(c,d+1); out.push(pad+close(c)); } };
   walk(t.content,0); return out.join("\n");
+}
+
+/* ---------- Porovnání s cílem: prolnutí posuvníkem a seznam rozdílů ---------- */
+let CMP=false, DIFFV=false;
+const DIFF_PROPS=[["color","barva textu"],["backgroundColor","pozadí"],["fontSize","velikost písma"],["fontWeight","tloušťka písma"],["borderTopWidth","tloušťka rámečku"],["borderTopColor","barva rámečku"],["borderTopLeftRadius","zaoblení"],["textAlign","zarovnání textu"],["opacity","průhlednost"]];
+function diffRenders(mineRoot,goalRoot){
+  const A=[...mineRoot.querySelectorAll(".scene *")], B=[...goalRoot.querySelectorAll(".scene *")];
+  if(A.length!==B.length||!A.length) return null;
+  const sa=mineRoot.querySelector(".scene").getBoundingClientRect(), sb=goalRoot.querySelector(".scene").getBoundingClientRect();
+  const out=[], moved=new Map();
+  A.forEach((a,k)=>{ const b=B[k]; if(a.closest(".kx-layer")) return;
+    const ra=a.getBoundingClientRect(), rb=b.getBoundingClientRect(), ca=getComputedStyle(a), cb=getComputedStyle(b), why=[];
+    const dx=Math.round((ra.left-sa.left)-(rb.left-sb.left)), dy=Math.round((ra.top-sa.top)-(rb.top-sb.top));
+    const pm=moved.get(a.parentElement);
+    if((Math.abs(dx)>2||Math.abs(dy)>2)&&!(pm&&Math.abs(pm[0]-dx)<=2&&Math.abs(pm[1]-dy)<=2)) why.push(`poloha (posun ${dx>0?"+":""}${dx}px, ${dy>0?"+":""}${dy}px)`);
+    moved.set(a,[dx,dy]);
+    if(Math.abs(ra.width-rb.width)>2) why.push(`šířka ${Math.round(ra.width)} → ${Math.round(rb.width)}px`);
+    if(Math.abs(ra.height-rb.height)>2) why.push(`výška ${Math.round(ra.height)} → ${Math.round(rb.height)}px`);
+    const hx=v=>{ const m=/^rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?\)$/.exec(v); if(!m) return v; if(m[4]==="0") return "průhledné"; return "#"+[m[1],m[2],m[3]].map(x=>(+x).toString(16).padStart(2,"0")).join("")+(m[4]?` (${Math.round(m[4]*100)} %)`:""); };
+    for(const [p,n] of DIFF_PROPS) if(ca[p]!==cb[p]) why.push(`${n}: ${hx(ca[p])} → ${hx(cb[p])}`);
+    if(why.length) out.push({el:a,goal:b,why});
+  });
+  return out;
+}
+function renderDiff(box){
+  const panel=box.querySelector(".diffpanel"); const mineH=box.querySelector('[data-host="mine"]'), goalH=box.querySelector('[data-host="goal"]');
+  if(!mineH?.shadowRoot||!goalH?.shadowRoot) return;
+  const root=mineH.shadowRoot; root.querySelectorAll(".kx-diff").forEach(x=>x.remove());
+  if(!DIFFV){ if(panel) panel.hidden=true; return; }
+  const d=diffRenders(root,goalH.shadowRoot); if(!panel) return; panel.hidden=false;
+  if(!d){ panel.innerHTML=`<b>Rozdíly oproti cíli</b><p class="note">Tady se HTML výsledku a cíle liší, rozdíly porovnat nejde.</p>`; return; }
+  if(!d.length){ panel.innerHTML=`<b>Rozdíly oproti cíli</b><p class="ok-line">Vypadá to stejně jako cíl.</p>`; return; }
+  const hr=mineH.getBoundingClientRect(), ox=-hr.left+mineH.scrollLeft, oy=-hr.top+mineH.scrollTop; let html="";
+  d.slice(0,6).forEach((x,k)=>{ const r=x.el.getBoundingClientRect(); html+=`<div class="kx-diff" style="all:initial;position:absolute;left:${r.left+ox}px;top:${r.top+oy}px;width:${r.width}px;height:${r.height}px;outline:2px dashed #e11d48;outline-offset:-1px;pointer-events:none;z-index:2147483001"></div><span class="kx-diff" style="all:initial;position:absolute;left:${r.left+ox-6}px;top:${r.top+oy-8}px;font:700 10px/1 system-ui;color:#fff;background:#e11d48;border-radius:99px;padding:2px 5px;z-index:2147483002">${k+1}</span>`; });
+  const l=document.createElement("div"); l.className="kx-diff"; l.setAttribute("style","all:initial;position:absolute;left:0;top:0;pointer-events:none"); l.innerHTML=html; root.append(l);
+  panel.innerHTML=`<b>Rozdíly oproti cíli</b><ol>${d.slice(0,6).map(x=>`<li><code>${esc(selOf(x.el))}</code> — ${esc(x.why.slice(0,3).join(", "))}</li>`).join("")}</ol>${d.length>6?`<p class="note">…a další ${d.length-6}.</p>`:""}`;
+}
+function renderCompare(box){
+  const st=box.querySelector('.stage:has([data-host="mine"])'), goalH=box.querySelector('[data-host="goal"]'); if(!st||!goalH) return;
+  let layer=st.querySelector(".cmp-layer");
+  if(!CMP){ if(layer) layer.remove(); st.querySelector(".cmp-range")?.remove(); return; }
+  const host=st.querySelector('[data-host="mine"]');
+  if(!layer){ layer=document.createElement("div"); layer.className="cmp-layer"; layer.innerHTML=`<div class="host cmp-host"></div><i class="cmp-line"></i><span class="cmp-l">ty</span><span class="cmp-r">cíl</span>`; st.append(layer);
+    const rg=document.createElement("input"); rg.type="range"; rg.min=0; rg.max=100; rg.value=50; rg.className="cmp-range"; rg.setAttribute("aria-label","Posuvník porovnání s cílem"); st.append(rg);
+    rg.addEventListener("input",()=>layer.style.setProperty("--x",rg.value+"%")); layer.style.setProperty("--x","50%");
+    host.addEventListener("scroll",()=>{ const c=st.querySelector(".cmp-host"); if(c){ c.scrollTop=host.scrollTop; c.scrollLeft=host.scrollLeft; } }); }
+  layer.style.top=host.offsetTop+"px"; layer.style.height=host.offsetHeight+"px";
+  const L=P.L; paintShadow(layer.querySelector(".cmp-host"),{fixed:L.fixed,css:L.solution,html:L.html,w:L.canvas});
+  const ch=layer.querySelector(".cmp-host"); ch.scrollTop=host.scrollTop; ch.scrollLeft=host.scrollLeft;
 }
 
 /* ---------- Prozkoumat prvky + Ukázat mřížku v náhledu ---------- */
@@ -81,8 +151,12 @@ function drawGrids(box){
 function setupStageTools(box){
   const st=box.querySelector(".stages"); if(!st) return;
   const bar=document.createElement("div"); bar.className="stage-tools";
-  bar.innerHTML=`<button type="button" class="tool" id="toolInspect" aria-pressed="${INSPECT}">Prozkoumat prvky</button><button type="button" class="tool" id="toolGrid" aria-pressed="${GRIDVIEW}">Ukázat mřížku</button><span class="tool-hint" id="toolHint">${INSPECT?"Najeď myší na prvek v náhledu. Kliknutím zkopíruješ selektor.":""}</span>`;
+  bar.innerHTML=`<button type="button" class="tool" id="toolInspect" aria-pressed="${INSPECT}">Prozkoumat prvky</button><button type="button" class="tool" id="toolGrid" aria-pressed="${GRIDVIEW}">Ukázat mřížku</button>${P&&!P.L.project?`<button type="button" class="tool" id="toolCmp" aria-pressed="${CMP}">Prolnout s cílem</button><button type="button" class="tool" id="toolDiff" aria-pressed="${DIFFV}">Co se liší?</button>`:""}<span class="tool-hint" id="toolHint">${INSPECT?"Najeď myší na prvek v náhledu. Kliknutím zkopíruješ selektor.":""}</span>`;
   st.before(bar);
+  const dp=document.createElement("div"); dp.className="diffpanel"; dp.hidden=true; st.after(dp);
+  const tc=bar.querySelector("#toolCmp"), td=bar.querySelector("#toolDiff");
+  if(tc) tc.onclick=e=>{ CMP=!CMP; e.currentTarget.setAttribute("aria-pressed",CMP); renderCompare(box); };
+  if(td) td.onclick=e=>{ DIFFV=!DIFFV; e.currentTarget.setAttribute("aria-pressed",DIFFV); renderDiff(box); };
   bar.querySelector("#toolGrid").onclick=e=>{ GRIDVIEW=!GRIDVIEW; e.currentTarget.setAttribute("aria-pressed",GRIDVIEW); try{localStorage.setItem("kaskada.tools",JSON.stringify({grid:GRIDVIEW}))}catch(x){} drawGrids(box); };
   bar.querySelector("#toolInspect").onclick=e=>{ INSPECT=!INSPECT; e.currentTarget.setAttribute("aria-pressed",INSPECT); $("#toolHint").textContent=INSPECT?"Najeď myší na prvek v náhledu. Kliknutím zkopíruješ selektor.":""; if(!INSPECT) hideTip(); };
   for(const host of box.querySelectorAll(".host")){

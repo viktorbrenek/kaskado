@@ -1,6 +1,9 @@
 /* Modul „pos“ — úrovně se zobrazí v tomto pořadí. Šablona nové úrovně: viz CONTRIBUTING.md */
 addLevels("css", [
   { id:"pos-1", module:"pos", xp:280, title:"Štítek v rohu",
+    slides:[
+      { title:"Normální tok a position", html:`<p>Bez pozicování jdou prvky v <b>normálním toku</b>: bloky pod sebe, text za sebou. Vlastnost <code>position</code> tohle mění.</p>${posDiagram("flow")}${posDiagram("relative")}` },
+      { title:"absolute a jeho kotva", html:`${posDiagram("absolute")}<p>Bez <code>position: relative</code> na rodiči by se štítek chytil až okraje stránky.</p>` } ],
     theory:`<p><code>position: absolute</code> vytrhne prvek z toku a umístí ho vůči nejbližšímu <b>pozicovanému</b> předkovi (tomu, kdo má <code>position</code> jiné než <code>static</code>). Proto rodiči dáváme <code>position: relative</code>.</p><p>Umístění pak určí <code>top</code>, <code>right</code>, <code>bottom</code>, <code>left</code>.</p>`,
     task:`Umísti štítek <code>.badge</code> do pravého horního rohu karty <code>.card</code>, <code>8px</code> od horního i pravého okraje.`,
     html:`<div class="card"><span class="badge">Nové</span><b>Kurz CSS</b><br>Pozicování prvků.</div>`,
@@ -13,6 +16,8 @@ addLevels("css", [
       {label:"8px od pravého okraje karty", test:c=>c.near(c.rect(".card").right-c.rect(".badge").right,9)} ] },
 
   { id:"pos-2", module:"pos", xp:300, kind:"debug", title:"Kdo je nahoře?",
+    slides:[
+      { title:"Vrstvy a z-index", html:`${posDiagram("z")}<p>Když se prvky překrývají, rozhoduje <code>z-index</code>. Na <code>position: static</code> ale nemá vliv — to je ta nejčastější past.</p>` } ],
     theory:`<p><code>z-index</code> určuje pořadí vrstev, ale funguje jen u pozicovaných prvků (a u dětí flexu/gridu). Na <code>position: static</code> ho prohlížeč ignoruje — klasická past.</p>`,
     task:`Karta <code>.front</code> má překrývat <code>.back</code>. Kolega jí dal <code>z-index: 5</code> a nic se nestalo. Oprav to.`,
     html:`<div class="back">Pozadí (z-index 2)</div><div class="front">Popředí — mám být nahoře</div>`,
@@ -24,6 +29,8 @@ addLevels("css", [
       {label:".front má vyšší z-index než .back", test:c=>(parseInt(c.cs(".front").zIndex)||0)>2} ] },
 
   { id:"pos-3", wide:true, module:"pos", xp:300, title:"Přilepená hlavička",
+    slides:[
+      { title:"sticky: normálně, dokud to jde", html:`${posDiagram("sticky")}<p><code>sticky</code> potřebuje stranu, ke které se lepí: <code>top: 0</code>. A přilepí se jen uvnitř svého posuvného rodiče.</p>` } ],
     theory:`<p><code>position: sticky</code> se chová jako normální prvek, dokud nedojede k okraji posuvné oblasti — pak se „přilepí“. Potřebuje hodnotu <code>top</code> (nebo jinou stranu).</p>`,
     task:`Hlavička seznamu <code>.head</code> se má při rolování přilepit k hornímu okraji boxu <code>.list</code>. Vyzkoušej rolovat.`,
     html:`<div class="list"><div class="head">Zprávy</div>${Array.from({length:10},(_,i)=>`<p>Zpráva č. ${i+1}</p>`).join("")}</div>`,
@@ -36,6 +43,8 @@ addLevels("css", [
       {label:"Při rolování zůstává nahoře", test:c=>{const l=c.q(".list"),o=l.scrollTop;l.scrollTop=120;const ok=c.near(c.rect(".head").top,l.getBoundingClientRect().top+1,2);l.scrollTop=o;return ok}} ] },
 
   { id:"pos-4", module:"pos", xp:320, title:"Překryv přes celou plochu",
+    slides:[
+      { title:"inset = všechny strany najednou", html:`<p><code>inset: 0</code> je zkratka pro <code>top: 0; right: 0; bottom: 0; left: 0</code>. Absolutní prvek se tak roztáhne přes celého pozicovaného rodiče.</p>${posDiagram("inset")}` } ],
     theory:`<p>Zkratka <code>inset: 0</code> = <code>top: 0; right: 0; bottom: 0; left: 0</code>. Absolutní prvek s ní vyplní celého pozicovaného rodiče — typicky ztmavení pod modálním oknem nebo popisek přes obrázek.</p>`,
     task:`Poloprůhledný <code>.shade</code> má pokrýt celý <code>.photo</code> (přesně jeho rozměry).`,
     html:`<div class="photo"><div class="shade">Náhled</div></div>`,

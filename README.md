@@ -12,7 +12,8 @@ Píšeš CSS do editoru, vidíš výsledek živě vedle cíle a hra kontroluje, 
 - **Zakázky:** celé weby a appky podle klientského zadání (styl, paleta, písma), kontrolované podle zadání, ne podle předlohy
 - **Novinky:** oklch, anchor positioning, scroll-driven animace, style queries, `if()`… u každé funkce stav podpory v prohlížečích
 - **Editor pro nováčky:** barevné zvýraznění kódu, našeptávání vlastností, hodnot i tříd z HTML úrovně, automatické závorky, na mobilu lišta se znaky `{ } : ; # .`
-- **Pomůcky:** Kontrola zápisu (česky řekne, co chybí a kde), Tahák, náhled HTML, Prozkoumat prvky, Ukázat mřížku (jako v DevTools)
+- **Pomůcky:** Kontrola zápisu (česky řekne, co chybí a kde), Tahák, náhled HTML, Prozkoumat prvky, Ukázat mřížku (jako v DevTools), Prolnout s cílem (posuvník), Co se liší? (seznam rozdílů oproti cíli)
+- **Výklad s nákresy:** flexbox (osy, justify-content, align-items), pozicování (tok, relative, absolute, z-index, sticky) a grid
 - **Galerie:** hotové zakázky sdílíš přes GitHub Discussions
 - Beta kurzy HTML a JavaScript
 

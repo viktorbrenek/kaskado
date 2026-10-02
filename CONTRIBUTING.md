@@ -61,6 +61,18 @@ Kontrola dostane objekt `c` nad náhledem hráče:
 - Label piš z pohledu hráče: „Nadpis je vycentrovaný“, ne „text-align === center“.
 - U zakázek hlídej zadání klienta, ne pixelovou shodu s referenčním řešením.
 
+### Úrovně JavaScriptu
+
+Místo `checks` mají `tests` — výrazy, jejichž výsledek se porovná s `expect` (přes JSON):
+
+```js
+tests:[{ label:"soucet(2, 3) → 5", expr:"soucet(2, 3)", expect:5 }]
+```
+
+- `expr` smí vracet Promise (počká se na ni) — hodí se pro async úrovně.
+- `prelude:"…"` je připravený kód, který běží před hráčovým (data, falešné `fetch`). Hráč ho vidí v rozbalovacím panelu.
+- `engine:"dom"` spustí kód v izolovaném iframu nad `html` a `fixed`. Test může mít `act:"…"` (klik, vyplnění pole), které proběhne před `expr`. Testy běží postupně ve stejné stránce, takže stav se mezi nimi přenáší.
+
 ## Hlášení chyb a nápady
 
 Ve hře je u každé úrovně tlačítko **Nahlásit problém** — otevře issue s vyplněnou úrovní, kódem hráče a nesplněnými kontrolami. Ručně jdou použít šablony *Problém s úrovní*, *Návrh úrovně* a *Chyba ve hře*.

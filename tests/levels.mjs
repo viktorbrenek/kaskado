@@ -14,7 +14,7 @@ for(const width of [1280,390]){
     for(const C of COURSES.filter(c=>c.status!=="soon")){ UI.course=C.id;
       for(const [i,L] of C.levels.entries()){
         if(!isUnlocked(C,i)){ out.push(`${C.id}/${L.id}: zamčeno v pořadí`); continue; }
-        startLevel(L.id); await new Promise(r=>setTimeout(r,C.engine==="js"?700:30)); await evaluate();
+        startLevel(L.id); await new Promise(r=>setTimeout(r,(L.engine||C.engine)==="css"||(L.engine||C.engine)==="html"?30:700)); await evaluate();
         if(P.passed) out.push(`${C.id}/${L.id}: výchozí kód prošel`);
         P.css=L.solution; document.querySelector("#code").value=L.solution; await evaluate();
         if(!P.passed) out.push(`${C.id}/${L.id}: řešení neprošlo — `+[...document.querySelectorAll("#checks li:not(.ok):not(.grp)")].map(e=>e.textContent).join(" | "));

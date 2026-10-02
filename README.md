@@ -19,7 +19,7 @@ Píšeš CSS do editoru, vidíš výsledek živě vedle cíle a hra kontroluje, 
 - **Appka a offline:** web jde nainstalovat (Přidat na plochu / Instalovat) a po první návštěvě funguje i bez internetu
 - **Galerie:** hotové zakázky sdílíš přes GitHub Discussions
 - Kurz HTML (26 úrovní): sémantika, tabulky, formuláře, přístupnost, details/dialog/popover/picture a refaktor „Div polévka“
-- Beta kurz JavaScript
+- Kurz JavaScript (41 úrovní): proměnné, funkce, pole, metody polí, objekty a JSON, DOM a události v izolovaném iframu, async/await a fetch, moderní JS, projekt Kavárenský košík
 
 ## Soukromí
 
@@ -54,7 +54,7 @@ src/
   courses/css/00-course.js  kurz CSS: stupně, moduly, úspěchy
   courses/css/NN-modul.js   úrovně jednoho modulu (pořadí = číslo v názvu)
   courses/html.js           kurz HTML
-  courses/js.js             beta kurz JavaScript
+  courses/js.js             kurz JavaScript (engine js = Web Worker, dom = sandbox iframe)
 public/fonts/               lokálně hostovaná písma
 kaskada.config.json         nastavení galerie (giscus)
 build.mjs                   sestaví dist/ (bez závislostí)

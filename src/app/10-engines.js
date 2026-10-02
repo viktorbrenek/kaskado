@@ -262,33 +262,73 @@ ENGINES.html = { file:"index.html", lang:"html", delay:150,
   async run(L,code,box){ const root=paintShadow(box.querySelector('[data-host="mine"]'),{fixed:L.fixed,html:code}); return runChecks(L,domCtx(root)); }
 };
 
-/* ---------- ENGINE: JavaScript — kód běží ve Web Workeru, testy = výrazy ---------- */
+/* ---------- ENGINE: JavaScript — kód běží ve Web Workeru, testy = výrazy (smí být i Promise) ---------- */
+const jsFn=t=>`async()=>{try{${t.act?`await (async()=>{${t.act}})();`:""}const v=await (${t.expr});return {v:v===undefined?"undefined":JSON.stringify(v)}}catch(e){return {e:String(e&&e.message||e)}}}`;
+const jsSeq=tests=>`(async()=>{const r=[];for(const f of [${tests.map(jsFn).join(",\n")}]) r.push(await f());return r})()`;
+const jsSafe=s=>String(s).replace(/<\/(script)/gi,"<\\/$1");
+function jsReport(L,box,logs,res,err){
+  const out=L.tests.map((t,k)=>{const r=res?.[k]; const exp=JSON.stringify(t.expect); const ok=!!r&&!r.e&&r.v===exp;
+    return {label:t.label,group:t.group,ok,got:r?(r.e?"chyba: "+r.e:r.v):(err||"—"),exp}});
+  box.querySelector("[data-tests]").innerHTML=out.map(o=>`<tr class="${o.ok?"ok":"ko"}"><td class="st">${o.ok?"✓":"×"}</td><td>${esc(o.label)}</td><td class="got">${o.ok?"":"dostali jsme "+esc(o.got)}</td></tr>`).join("");
+  box.querySelector("[data-t]").textContent=`${out.filter(o=>o.ok).length}/${out.length}`;
+  const o=box.querySelector("[data-out]");
+  o.innerHTML=(logs||[]).map(esc).join("\n")+(err?`<span class="err">${logs&&logs.length?"\n":""}${esc(err)}</span>`:"")||`<span style="color:var(--code-dim)">Zatím nic nevypsáno.</span>`;
+  return out.map(({label,ok,group})=>({label,ok,group}));
+}
+const consoleHtml=`<div class="console"><div class="lab"><span>Testy</span><span data-t></span></div><table class="tests"><tbody data-tests></tbody></table></div>
+    <div class="console"><div class="lab"><span>Konzole</span><span>console.log</span></div><div class="out" data-out></div></div>`;
+const LOG_SHIM=`const __l=[];const __f=a=>typeof a==="string"?a:(()=>{try{return JSON.stringify(a)}catch(e){return String(a)}})();console.log=(...a)=>__l.push(a.map(__f).join(" "));`;
 ENGINES.js = { file:"main.js", lang:"javascript", delay:500,
-  mount(L,box){ box.innerHTML=`<div class="console"><div class="lab"><span>Testy</span><span data-t></span></div><table class="tests"><tbody data-tests></tbody></table></div>
-    <div class="console"><div class="lab"><span>Konzole</span><span>console.log</span></div><div class="out" data-out></div></div>`; },
+  mount(L,box){ box.innerHTML=consoleHtml; },
   run(L,code,box){
     return new Promise(resolve=>{
-      const wrap=t=>`(()=>{try{const v=(${t.expr});return {v:v===undefined?"undefined":JSON.stringify(v)}}catch(e){return {e:String(e&&e.message||e)}}})()`;
-      const src=`const __l=[];const __f=a=>typeof a==="string"?a:(()=>{try{return JSON.stringify(a)}catch(e){return String(a)}})();
-console.log=(...a)=>__l.push(a.map(__f).join(" "));
-${code}
-;postMessage({logs:__l,res:[${L.tests.map(wrap).join(",")}]});`;
+      const pre=L.prelude?L.prelude+"\n":"", off=1+(pre?pre.split("\n").length-1:0);
+      const src=`${LOG_SHIM}
+${pre}${code}
+;${jsSeq(L.tests)}.then(res=>postMessage({logs:__l,res}));`;
       let w, done=false;
-      const finish=(logs,res,err)=>{ if(done)return; done=true; try{w&&w.terminate()}catch(e){}
-        const out=L.tests.map((t,k)=>{const r=res?.[k]; const exp=JSON.stringify(t.expect); const ok=!!r&&!r.e&&r.v===exp;
-          return {label:t.label,ok,got:r?(r.e?"chyba: "+r.e:r.v):(err||"—"),exp}});
-        box.querySelector("[data-tests]").innerHTML=out.map(o=>`<tr class="${o.ok?"ok":"ko"}"><td class="st">${o.ok?"✓":"×"}</td><td>${esc(o.label)}</td><td class="got">${o.ok?"":"dostali jsme "+esc(o.got)}</td></tr>`).join("");
-        box.querySelector("[data-t]").textContent=`${out.filter(o=>o.ok).length}/${out.length}`;
-        const o=box.querySelector("[data-out]");
-        o.innerHTML=(logs||[]).map(esc).join("\n")+(err?`<span class="err">${logs&&logs.length?"\n":""}${esc(err)}</span>`:"")||`<span style="color:var(--code-dim)">Zatím nic nevypsáno.</span>`;
-        resolve(out.map(({label,ok})=>({label,ok})));
-      };
+      const finish=(logs,res,err)=>{ if(done)return; done=true; try{w&&w.terminate()}catch(e){} resolve(jsReport(L,box,logs,res,err)); };
       try{
         w=new Worker(URL.createObjectURL(new Blob([src],{type:"text/javascript"})));
         w.onmessage=e=>finish(e.data.logs,e.data.res,null);
-        w.onerror=e=>{e.preventDefault();finish([],null,(e.message||"Chyba v kódu").replace(/^Uncaught /,"")+(e.lineno?` (řádek ${Math.max(1,e.lineno-2)})`:""))};
+        w.onerror=e=>{e.preventDefault();finish([],null,(e.message||"Chyba v kódu").replace(/^Uncaught /,"")+(e.lineno?` (řádek ${Math.max(1,e.lineno-off)})`:""))};
         setTimeout(()=>finish([],null,"Kód běžel déle než 2 s — nemáš nekonečnou smyčku?"),2000);
       }catch(e){ finish([],null,"Spouštění JavaScriptu tu není dostupné."); }
+    });
+  }
+};
+
+/* ---------- ENGINE: DOM — JavaScript nad stránkou v izolovaném iframu (sandbox bez přístupu k Kaskádě).
+   Viditelný náhled = jen tvůj kód (můžeš klikat); testy běží ve skrytém iframu, aby ho neovlivnily. */
+function domDoc(L,code,{tests=null,nonce=""}={}){
+  const pre=`<!doctype html><html lang="cs"><head><meta charset="utf-8"><style>html{font:15px/1.45 system-ui,sans-serif;color:#14203a}body{margin:12px}${L.fixed||""}</style></head><body>${L.html||""}
+<script>${LOG_SHIM}window.__l=__l;const __send=m=>parent.postMessage({...m,nonce:${JSON.stringify(nonce)}},"*");
+window.addEventListener("error",e=>__send({k:"err",msg:String(e.message).replace(/^Uncaught /,""),line:e.lineno}));
+document.addEventListener("submit",e=>e.preventDefault(),true);document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest("a[href]");if(a)e.preventDefault()},true);<\/script>${L.prelude?`\n<script>${jsSafe(L.prelude)}<\/script>`:""}
+<script>`;
+  const userLine=pre.split("\n").length;
+  const post=`\n<\/script>`+(tests?`<script>setTimeout(()=>${jsSafe(jsSeq(tests))}.then(res=>__send({k:"res",logs:__l,res})),20);<\/script>`:"");
+  return {html:pre+jsSafe(code)+post, userLine};
+}
+ENGINES.dom = { file:"main.js", lang:"javascript", delay:500,
+  mount(L,box){ box.innerHTML=`<div class="stages${L.wide||L.boss?" wide":""}">
+    <div class="stage"><div class="lab"><span>Tvůj výsledek</span><span>klikej, zkoušej</span></div><iframe class="dom-frame" data-frame="mine" sandbox="allow-scripts allow-forms" title="Tvůj výsledek"></iframe></div>
+    <div class="stage"><div class="lab"><span>Cíl</span><span>vzorové řešení</span></div><iframe class="dom-frame" data-frame="goal" sandbox="allow-scripts allow-forms" title="Cíl"></iframe></div></div>
+    <iframe data-frame="test" sandbox="allow-scripts allow-forms" hidden title="Testy"></iframe>${consoleHtml}`;
+    box.querySelector('[data-frame="goal"]').srcdoc=domDoc(L,L.solution).html; },
+  run(L,code,box){
+    // pozor: testy volají funkce z kódu → spouštíme je jako sekvenci (act + expr), stav se mezi testy nemaže
+    box.querySelector('[data-frame="mine"]').srcdoc=domDoc(L,code).html;
+    return new Promise(resolve=>{
+      const nonce=Math.random().toString(36).slice(2), fr=box.querySelector('[data-frame="test"]');
+      const {html,userLine}=domDoc(L,code,{tests:L.tests,nonce}); let done=false, err=null;
+      const finish=(logs,res,e)=>{ if(done)return; done=true; window.removeEventListener("message",on); resolve(jsReport(L,box,logs,res,e)); };
+      const on=e=>{ const d=e.data; if(!d||d.nonce!==nonce||e.source!==fr.contentWindow) return;
+        if(d.k==="err"&&!err) err=d.msg+(d.line>=userLine?` (řádek ${d.line-userLine+1})`:"");
+        if(d.k==="res") finish(d.logs,d.res,err); };
+      window.addEventListener("message",on);
+      fr.srcdoc=html;
+      setTimeout(()=>finish([],null,err||"Kód běžel déle než 2 s — nemáš nekonečnou smyčku?"),2500);
     });
   }
 };

@@ -157,7 +157,7 @@ function renderMap(){
 let P=null, runSeq=0, runTimer=null;
 function startLevel(id,keepCode,opts){
   const C=CUR(), i=C.levels.findIndex(l=>l.id===id); if(i<0||!isUnlocked(C,i)) return;
-  const L=C.levels[i], E=ENGINES[C.engine];
+  const L=C.levels[i], E=ENGINES[L.engine||C.engine];
   const dr=DRAFTS[C.id+"/"+id];
   P={C,E,L,i,hints:0,solution:false,start:Date.now(),css:keepCode&&P&&P.L.id===id?P.css:(L.project&&dr!=null&&!opts?.daily?dr:L.starter),passed:false,daily:!!opts?.daily};
   show("play"); renderPlay();
@@ -188,7 +188,7 @@ function renderPlay(){
       <h2>${esc(L.title)}</h2>
       ${P.daily?`<div class="daily-banner"><b>Výzva dne</b> Vyřeš úroveň znovu od nuly a bez nápovědy — dostaneš +${RULES.challenge(S.streak||0)} XP.</div>`:""}
       ${L.support&&!sup?`<div class="hint"><b>Tvůj prohlížeč tuhle funkci zatím nezná.</b> Výsledek se nevykreslí, proto zkontrolujeme jen zápis. Naplno si ji vyzkoušíš v aktuálním Chromu.</div>`:""}
-      ${L.project?briefHtml(L):L.slides?slidesHtml(L):`<div class="theory">${L.theory}</div>${L.id==="sel-1"&&!cstate("css").done["s-5"]?`<p class="note">Nový v CSS? <button class="linkbtn" data-play="s-1">Projdi nejdřív Úplné základy</button> — deset minut, vysvětlí selektor, vlastnost i závorky.</p>`:""}<div class="task"><h4>Úkol</h4>${L.task}</div>`}
+      ${L.project?briefHtml(L):L.slides?slidesHtml(L):`<div class="theory">${L.theory}</div>${L.id==="sel-1"&&!cstate("css").done["s-5"]?`<p class="note">Nový v CSS? <button class="linkbtn" data-play="s-1">Projdi nejdřív Úplné základy</button> — deset minut, vysvětlí selektor, vlastnost i závorky.</p>`:""}<div class="task"><h4>Úkol</h4>${L.task}</div>`}${preludeHtml(L)}
       <ul class="checks" id="checks"></ul>
       <div class="hints" id="hints"></div>
       <div class="helpbar">
@@ -284,6 +284,7 @@ function renderHelp(){
 function schedule(){ updateGutter(); clearTimeout(runTimer); const d=P.E.delay; if(!d) return evaluate(); $("#status").textContent="Spouštím…"; runTimer=setTimeout(evaluate,d); }
 function updateGutter(bad){ const n=P.css.split("\n").length, set=new Set((bad||P.lint||[]).map(x=>x.line)); $("#gutter").innerHTML=Array.from({length:n},(_,k)=>set.has(k+1)?`<span class="gerr">${k+1}</span>`:k+1).join("\n"); }
 let lintTimer=null;
+function preludeHtml(L){ return L.prelude?`<details class="prelude"><summary>Připravený kód <small>běží před tvým, můžeš ho používat</small></summary><pre>${esc(L.prelude)}</pre></details>`:""; }
 function renderLint(){ const box=$("#lint"); if(!box) return; const l=P.E.lang==="css"?lintCss(P.css,P.L):P.E.lang==="html"?lintHtml(P.css):[]; P.lint=l; updateGutter(l);
   box.hidden=!l.length; box.innerHTML=l.length?`<b>Kontrola zápisu</b><ul>${l.map(x=>`<li><span class="ln">ř. ${x.line}</span> ${esc(x.msg)}</li>`).join("")}</ul>`:""; }
 async function evaluate(){

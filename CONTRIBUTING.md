@@ -73,6 +73,13 @@ tests:[{ label:"soucet(2, 3) → 5", expr:"soucet(2, 3)", expect:5 }]
 - `prelude:"…"` je připravený kód, který běží před hráčovým (data, falešné `fetch`). Hráč ho vidí v rozbalovacím panelu.
 - `engine:"dom"` spustí kód v izolovaném iframu nad `html` a `fixed`. Test může mít `act:"…"` (klik, vyplnění pole), které proběhne před `expr`. Testy běží postupně ve stejné stránce, takže stav se mezi nimi přenáší.
 
+### Hry (Herní dílna)
+
+- V testech `engine:"dom"` čas neběží sám: `setInterval` se jen zapíše a test ho posune přes `__sekunda(n)`, `requestAnimationFrame` se nespouští. Testy volají `update(dt)` a `draw()` přímo, náhodu nastaví `Math.random=()=>0.5`. Hry jsou tak deterministické.
+- `continues:"id"` = úroveň navazuje na předchozí; hráč může kliknout „Navázat na můj kód“.
+- `game:{name, emoji}` = hotová hra se objeví v Arkádě na mapě kurzu (`arcade:true` u kurzu).
+- `frame:400` = výška náhledu v px.
+
 ## Hlášení chyb a nápady
 
 Ve hře je u každé úrovně tlačítko **Nahlásit problém** — otevře issue s vyplněnou úrovní, kódem hráče a nesplněnými kontrolami. Ručně jdou použít šablony *Problém s úrovní*, *Návrh úrovně* a *Chyba ve hře*.

@@ -118,6 +118,27 @@ function renderCourses(){
   $("#v-courses").innerHTML=h+`</div>`;
 }
 
+/* ---------- ARKÁDA: hotové hry z kurzu, hrané s hráčovým vlastním kódem ---------- */
+function arcadeHtml(C,cs){
+  const games=C.levels.filter(l=>l.game); if(!games.length) return "";
+  const got=games.filter(l=>cs.done[l.id]).length;
+  return `<section class="arcade" aria-labelledby="arcH"><h3 id="arcH">👾 Tvoje arkáda</h3><small>${got?`${got} z ${games.length} her. Hrají se s tvým vlastním kódem.`:"Dokonči herní úroveň a hra se ti tu objeví. Hrát ji budeš s vlastním kódem."}</small>
+    <div class="cabinets">${games.map(l=>{ const d=cs.done[l.id]; return `<button class="cab" type="button" ${d?`data-arcade="${l.id}"`:`aria-disabled="true" title="Odemkne se po úrovni ${esc(l.title)}"`}><span class="scr">${l.game.emoji}</span><b>${esc(l.game.name)}</b><small>${d?"▶ Hrát":"🔒 "+esc(l.title)}</small></button>`; }).join("")}</div></section>`;
+}
+function openArcade(id){
+  const C=CUR(), L=C.levels.find(l=>l.id===id); if(!L||!cstate(C.id).done[id]) return;
+  const code=DRAFTS[C.id+"/"+id]??L.solution;
+  const ov=document.createElement("div"); ov.className="overlay";
+  ov.innerHTML=`<div class="modal arcade-modal" role="dialog" aria-modal="true" aria-labelledby="arT"><h3 id="arT">${L.game.emoji} ${esc(L.game.name)}</h3>
+    <iframe sandbox="allow-scripts allow-forms" title="${esc(L.game.name)}"></iframe>
+    <div class="helpbar"><button class="btn" data-again>Restartovat</button><button class="btn ghost" data-play="${id}" data-close>Upravit kód</button><button class="btn ghost" data-close>Zavřít</button></div></div>`;
+  document.body.append(ov);
+  const fr=ov.querySelector("iframe"), load=()=>{ fr.srcdoc=domDoc(L,code,{css:"body{display:grid;place-content:center;min-height:calc(100vh - 28px)}canvas{width:min(640px,calc(100vw - 40px));height:auto;image-rendering:pixelated}"}).html; setTimeout(()=>fr.focus(),60); }; load();
+  ov.addEventListener("click",e=>{ if(e.target.closest("[data-again]")) load(); if(e.target===ov||e.target.closest("[data-close]")) ov.remove(); });
+  ov.addEventListener("keydown",e=>{ if(e.key==="Escape") ov.remove(); });
+}
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-arcade]"); if(b) openArcade(b.dataset.arcade); });
+
 /* ---------- MAPA ---------- */
 function renderMap(){
   const C=CUR(), cs=cstate(C.id);
@@ -125,6 +146,7 @@ function renderMap(){
   const total=C.levels.length, dn=C.levels.filter(l=>cs.done[l.id]).length;
   let h=`<div class="view-head"><div><h2>${C.name}</h2><p>${C.tiers?`${C.tiers.map(t=>t.name).join(" → ")}. Další stupeň se otevře po splnění ${TIER_GATE*100} % předchozího, moduly uvnitř stupně si projdeš v libovolném pořadí.`:"Úrovně se odemykají postupně."} Bez nápovědy 3 hvězdy a bonus ${RULES.cleanBonus} XP.</p></div>
   ${nextIdx>=0?`<button class="btn primary" data-play="${C.levels[nextIdx].id}">Pokračovat: ${esc(C.levels[nextIdx].title)}</button>`:dn===total?`<span class="chip done">Kurz dokončen</span>`:""}</div>`;
+  if(C.arcade) h+=arcadeHtml(C,cs);
   const groups=C.tiers?C.tiers.map(t=>({t,mods:C.modules.filter(m=>m.tier===t.id)})):[{t:null,mods:C.modules}];
   for(const {t,mods} of groups){
     if(t){ const tl=tierLevels(C,t.id), td=tl.filter(l=>cs.done[l.id]).length, open=tierUnlocked(C,t.id), k=C.tiers.indexOf(t), got=S.ach[`cert-${C.id}-${t.id}`];
@@ -159,7 +181,7 @@ function startLevel(id,keepCode,opts){
   const C=CUR(), i=C.levels.findIndex(l=>l.id===id); if(i<0||!isUnlocked(C,i)) return;
   const L=C.levels[i], E=ENGINES[L.engine||C.engine];
   const dr=DRAFTS[C.id+"/"+id];
-  P={C,E,L,i,hints:0,solution:false,start:Date.now(),css:keepCode&&P&&P.L.id===id?P.css:(L.project&&dr!=null&&!opts?.daily?dr:L.starter),passed:false,daily:!!opts?.daily};
+  P={C,E,L,i,hints:0,solution:false,start:Date.now(),css:keepCode&&P&&P.L.id===id?P.css:((L.project||L.continues)&&dr!=null&&!opts?.daily?dr:L.starter),passed:false,daily:!!opts?.daily};
   show("play"); renderPlay();
 }
 const SUP={baseline:{t:"Baseline",c:"live",d:"Funguje ve všech hlavních prohlížečích."},interop:{t:"Interop 2026",c:"beta",d:"Prohlížeče ji v roce 2026 společně dotahují — v Chromu a Safari už jede."},chromium:{t:"Chromium",c:"warn",d:"Zatím hlavně Chrome a Edge. Ostatní prohlížeče na cestě."}};
@@ -188,7 +210,7 @@ function renderPlay(){
       <h2>${esc(L.title)}</h2>
       ${P.daily?`<div class="daily-banner"><b>Výzva dne</b> Vyřeš úroveň znovu od nuly a bez nápovědy — dostaneš +${RULES.challenge(S.streak||0)} XP.</div>`:""}
       ${L.support&&!sup?`<div class="hint"><b>Tvůj prohlížeč tuhle funkci zatím nezná.</b> Výsledek se nevykreslí, proto zkontrolujeme jen zápis. Naplno si ji vyzkoušíš v aktuálním Chromu.</div>`:""}
-      ${L.project?briefHtml(L):L.slides?slidesHtml(L):`<div class="theory">${L.theory}</div>${L.id==="sel-1"&&!cstate("css").done["s-5"]?`<p class="note">Nový v CSS? <button class="linkbtn" data-play="s-1">Projdi nejdřív Úplné základy</button> — deset minut, vysvětlí selektor, vlastnost i závorky.</p>`:""}<div class="task"><h4>Úkol</h4>${L.task}</div>`}${preludeHtml(L)}
+      ${L.project?briefHtml(L):L.slides?slidesHtml(L):`<div class="theory">${L.theory}</div>${L.id==="sel-1"&&!cstate("css").done["s-5"]?`<p class="note">Nový v CSS? <button class="linkbtn" data-play="s-1">Projdi nejdřív Úplné základy</button> — deset minut, vysvětlí selektor, vlastnost i závorky.</p>`:""}<div class="task"><h4>Úkol</h4>${L.task}</div>`}${preludeHtml(L)}${contHtml(L,C)}
       <ul class="checks" id="checks"></ul>
       <div class="hints" id="hints"></div>
       <div class="helpbar">
@@ -235,6 +257,7 @@ function renderPlay(){
     $("#tabHtml").onclick=()=>sw(true); $("#tabCss").onclick=()=>sw(false); }
   if(E.lang==="css") setupStageTools($("#engineBox"));
   if(L.slides) setupSlides(L);
+  if($("#contBtn")) $("#contBtn").onclick=()=>{ ta.value=P.css=DRAFTS[C.id+"/"+L.continues]; saveDraft(); edRefresh(); evaluate(); $("#contBtn").closest(".cont-note").innerHTML="<span>Pokračuješ ve svém kódu. Vzorový výchozí kód vrátí „Vrátit kód“.</span>"; ta.focus(); };
   renderHelp(); evaluate(); ta.focus();
 }
 function slidesHtml(L){
@@ -284,6 +307,8 @@ function renderHelp(){
 function schedule(){ updateGutter(); clearTimeout(runTimer); const d=P.E.delay; if(!d) return evaluate(); $("#status").textContent="Spouštím…"; runTimer=setTimeout(evaluate,d); }
 function updateGutter(bad){ const n=P.css.split("\n").length, set=new Set((bad||P.lint||[]).map(x=>x.line)); $("#gutter").innerHTML=Array.from({length:n},(_,k)=>set.has(k+1)?`<span class="gerr">${k+1}</span>`:k+1).join("\n"); }
 let lintTimer=null;
+function contHtml(L,C){ const k=C.id+"/"+L.continues, mine=L.continues&&DRAFTS[k];
+  return mine&&cstate(C.id).done[L.continues]&&mine!==C.levels.find(l=>l.id===L.continues)?.solution?`<div class="cont-note"><span>Tahle úroveň navazuje na předchozí. Začíná vzorovým kódem.</span><button class="btn" type="button" id="contBtn">Navázat na můj kód</button></div>`:""; }
 function preludeHtml(L){ return L.prelude?`<details class="prelude"><summary>Připravený kód <small>běží před tvým, můžeš ho používat</small></summary><pre>${esc(L.prelude)}</pre></details>`:""; }
 function renderLint(){ const box=$("#lint"); if(!box) return; const l=P.E.lang==="css"?lintCss(P.css,P.L):P.E.lang==="html"?lintHtml(P.css):[]; P.lint=l; updateGutter(l);
   box.hidden=!l.length; box.innerHTML=l.length?`<b>Kontrola zápisu</b><ul>${l.map(x=>`<li><span class="ln">ř. ${x.line}</span> ${esc(x.msg)}</li>`).join("")}</ul>`:""; }

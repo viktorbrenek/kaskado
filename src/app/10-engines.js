@@ -300,11 +300,14 @@ ${pre}${code}
 
 /* ---------- ENGINE: DOM — JavaScript nad stránkou v izolovaném iframu (sandbox bez přístupu k Kaskádě).
    Viditelný náhled = jen tvůj kód (můžeš klikat); testy běží ve skrytém iframu, aby ho neovlivnily. */
-function domDoc(L,code,{tests=null,nonce=""}={}){
-  const pre=`<!doctype html><html lang="cs"><head><meta charset="utf-8"><style>html{font:15px/1.45 system-ui,sans-serif;color:#14203a}body{margin:12px}${L.fixed||""}</style></head><body>${L.html||""}
+/* V testech čas neběží sám: setInterval se jen zapíše a test ho „posune“ přes __sekunda(n),
+   requestAnimationFrame se nespouští (testy volají update/draw přímo). Díky tomu jsou hry deterministické. */
+const TEST_TIME=`window.__TEST=true;window.__intervals=[];window.setInterval=(f,ms=0)=>{__intervals.push({f,ms});return __intervals.length};window.clearInterval=id=>{const i=__intervals[id-1];if(i)i.f=()=>{}};window.requestAnimationFrame=()=>0;window.__sekunda=(n=1)=>{for(let k=0;k<n;k++)for(const i of [...__intervals])for(let r=0;r<Math.max(1,Math.round(1000/Math.max(i.ms,1)));r++)i.f()};`;
+function domDoc(L,code,{tests=null,nonce="",css=""}={}){
+  const pre=`<!doctype html><html lang="cs"><head><meta charset="utf-8"><style>html{font:15px/1.45 system-ui,sans-serif;color:#14203a}body{margin:12px}${L.fixed||""}${css}</style></head><body>${L.html||""}
 <script>${LOG_SHIM}window.__l=__l;const __send=m=>parent.postMessage({...m,nonce:${JSON.stringify(nonce)}},"*");
 window.addEventListener("error",e=>__send({k:"err",msg:String(e.message).replace(/^Uncaught /,""),line:e.lineno}));
-document.addEventListener("submit",e=>e.preventDefault(),true);document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest("a[href]");if(a)e.preventDefault()},true);<\/script>${L.prelude?`\n<script>${jsSafe(L.prelude)}<\/script>`:""}
+document.addEventListener("submit",e=>e.preventDefault(),true);document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest("a[href]");if(a)e.preventDefault()},true);${tests?TEST_TIME:""}<\/script>${L.prelude?`\n<script>${jsSafe(L.prelude)}<\/script>`:""}
 <script>`;
   const userLine=pre.split("\n").length;
   const post=`\n<\/script>`+(tests?`<script>setTimeout(()=>${jsSafe(jsSeq(tests))}.then(res=>__send({k:"res",logs:__l,res})),20);<\/script>`:"");
@@ -312,8 +315,8 @@ document.addEventListener("submit",e=>e.preventDefault(),true);document.addEvent
 }
 ENGINES.dom = { file:"main.js", lang:"javascript", delay:500,
   mount(L,box){ box.innerHTML=`<div class="stages${L.wide||L.boss?" wide":""}">
-    <div class="stage"><div class="lab"><span>Tvůj výsledek</span><span>klikej, zkoušej</span></div><iframe class="dom-frame" data-frame="mine" sandbox="allow-scripts allow-forms" title="Tvůj výsledek"></iframe></div>
-    <div class="stage"><div class="lab"><span>Cíl</span><span>vzorové řešení</span></div><iframe class="dom-frame" data-frame="goal" sandbox="allow-scripts allow-forms" title="Cíl"></iframe></div></div>
+    <div class="stage"><div class="lab"><span>Tvůj výsledek</span><span>klikej, zkoušej</span></div><iframe class="dom-frame"${L.frame?` style="height:${L.frame}px"`:""} data-frame="mine" sandbox="allow-scripts allow-forms" title="Tvůj výsledek"></iframe></div>
+    <div class="stage"><div class="lab"><span>Cíl</span><span>vzorové řešení</span></div><iframe class="dom-frame"${L.frame?` style="height:${L.frame}px"`:""} data-frame="goal" sandbox="allow-scripts allow-forms" title="Cíl"></iframe></div></div>
     <iframe data-frame="test" sandbox="allow-scripts allow-forms" hidden title="Testy"></iframe>${consoleHtml}`;
     box.querySelector('[data-frame="goal"]').srcdoc=domDoc(L,L.solution).html; },
   run(L,code,box){

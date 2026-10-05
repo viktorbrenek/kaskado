@@ -33,7 +33,7 @@ function reportUrl(L,C,css){
 
 /* ---------- certifikát jako obrázek ---------- */
 function certNameDefault(){ try{ return localStorage.getItem("kaskada.certname")||me?.name||""; }catch(e){ return me?.name||""; } }
-async function certImage({title,sub,name,date,levels,color,glyph}){
+async function certImage({title,sub,name,date,levels,color,glyph,course="CSS"}){
   try{ await Promise.all(["800 64px 'Bricolage Grotesque'","700 20px 'Atkinson Hyperlegible'","600 18px 'JetBrains Mono'"].map(f=>document.fonts.load(f))); }catch(e){}
   const W=1200,H=630,cv=document.createElement("canvas"); cv.width=W; cv.height=H; const x=cv.getContext("2d");
   const ink="#14203a", paper="#fbfaf6", bands=["#8cb6c0","#b9c77a","#f2c96b","#f3b184"];
@@ -51,7 +51,7 @@ async function certImage({title,sub,name,date,levels,color,glyph}){
   // pečeť
   x.beginPath(); x.arc(W-210,H-210,92,0,Math.PI*2); x.fillStyle=color||"#8cb6c0"; x.fill(); x.lineWidth=3; x.strokeStyle=ink; x.stroke();
   x.fillStyle=ink; x.textAlign="center"; x.font="800 44px 'Bricolage Grotesque', system-ui, sans-serif"; x.fillText(glyph||"",W-210,H-196);
-  x.font="600 14px 'JetBrains Mono', monospace"; x.fillText("CSS",W-210,H-168); x.textAlign="left";
+  x.font="600 14px 'JetBrains Mono', monospace"; x.font=`600 ${course.length>8?11:14}px 'JetBrains Mono', monospace`; x.fillText(course.toUpperCase(),W-210,H-168); x.textAlign="left";
   return cv.toDataURL("image/png");
 }
 async function openCertificate(achId){
@@ -65,7 +65,7 @@ async function openCertificate(achId){
     <p class="note">„Přidat na LinkedIn“ otevře formulář pro novou certifikaci v tvém profilu s vyplněným názvem. Nic se nikam neodesílá, dokud to v LinkedIn sám/sama neuložíš.</p></div>`;
   document.body.append(ov);
   const inp=ov.querySelector("#certName"); inp.value=certNameDefault();
-  const draw=async()=>{ const url=await certImage({title:`${t.name} ${C.name}`,sub:`Stupeň ${t.name} · kurz ${C.name}`,name:inp.value.trim(),date:got.toLocaleDateString("cs-CZ"),levels:tierLevels(C,t.id).length,glyph:t.glyph,color:C.color.startsWith("var")?getComputedStyle(document.documentElement).getPropertyValue(C.color.slice(4,-1)).trim():C.color});
+  const draw=async()=>{ const url=await certImage({title:`${t.name} ${C.name}`,sub:`Stupeň ${t.name} · kurz ${C.name}`,name:inp.value.trim(),date:got.toLocaleDateString("cs-CZ"),levels:tierLevels(C,t.id).length,glyph:t.glyph,course:C.name,color:C.color.startsWith("var")?getComputedStyle(document.documentElement).getPropertyValue(C.color.slice(4,-1)).trim():C.color});
     ov.querySelector("#certImg").src=url; ov.dataset.url=url;
     const li=new URL("https://www.linkedin.com/profile/add"); li.searchParams.set("startTask","CERTIFICATION_NAME"); li.searchParams.set("name",`Kaskáda: ${t.name} ${C.name}`); li.searchParams.set("organizationName","Kaskáda"); li.searchParams.set("issueYear",got.getFullYear()); li.searchParams.set("issueMonth",got.getMonth()+1); li.searchParams.set("certUrl",SITE_URL);
     ov.querySelector("#certLi").href=li.toString(); };

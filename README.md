@@ -19,6 +19,7 @@ Píšeš CSS do editoru, vidíš výsledek živě vedle cíle a hra kontroluje, 
 - **Appka a offline:** web jde nainstalovat (Přidat na plochu / Instalovat) a po první návštěvě funguje i bez internetu
 - **Galerie:** hotové zakázky sdílíš přes GitHub Discussions
 - Kurz HTML (26 úrovní): sémantika, tabulky, formuláře, přístupnost, details/dialog/popover/picture a refaktor „Div polévka“
+- Herní dílna (21 úrovní): klikačka, hádej číslo, kámen-nůžky-papír, canvas a herní smyčka, Chyť jablko a Farma od A do Z (8 kroků jedné hry). Hotové hry se sbírají v Arkádě a hrají s vlastním kódem
 - Kurz JavaScript (41 úrovní): proměnné, funkce, pole, metody polí, objekty a JSON, DOM a události v izolovaném iframu, async/await a fetch, moderní JS, projekt Kavárenský košík
 
 ## Soukromí
@@ -54,6 +55,7 @@ src/
   courses/css/00-course.js  kurz CSS: stupně, moduly, úspěchy
   courses/css/NN-modul.js   úrovně jednoho modulu (pořadí = číslo v názvu)
   courses/html.js           kurz HTML
+  courses/jsgames.js        Herní dílna (hry v JS, farma se skládá po krocích přes farm(n))
   courses/js.js             kurz JavaScript (engine js = Web Worker, dom = sandbox iframe)
 public/fonts/               lokálně hostovaná písma
 kaskada.config.json         nastavení galerie (giscus)
